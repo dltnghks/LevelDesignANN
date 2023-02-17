@@ -1,0 +1,82 @@
+{
+  "project_info": {
+    "project_number": "1085254088623",
+    "project_id": "leveldesignann",
+    "storage_bucket": "leveldesignann.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1085254088623:android:52473aea7a083ebad5615a",
+        "android_client_info": {
+          "package_name": "com.levelDesign.databasetest"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1085254088623-fi46vfgv4ckr9bmemflcvv988ur63qgn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBW7qP_pY-mpNemxD3o-9zKzijlH6yTGrc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1085254088623-fi46vfgv4ckr9bmemflcvv988ur63qgn.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1085254088623-70chfb576u00q8a2n14qb61j577ecgju.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.levelDesign.databasetest"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1085254088623:android:197958720e09b745d5615a",
+        "android_client_info": {
+          "package_name": "com.levelDesignAnn.databasetest"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1085254088623-fi46vfgv4ckr9bmemflcvv988ur63qgn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBW7qP_pY-mpNemxD3o-9zKzijlH6yTGrc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1085254088623-fi46vfgv4ckr9bmemflcvv988ur63qgn.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1085254088623-70chfb576u00q8a2n14qb61j577ecgju.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.levelDesign.databasetest"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
