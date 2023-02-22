@@ -461,6 +461,7 @@ public class Player : MonoBehaviour
         playerAnimationController.OnDie();
         yield return new WaitForSeconds(1.25f);
         SceneManager.LoadScene("GameOver");
+        //SceneManager.LoadScene("Ranking");
     }
 
 

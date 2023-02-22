@@ -82,10 +82,10 @@ public class FieldSpawner : Spawner
 
         }
         // 인공신경망일 경우 1스테이지만 랜덤
-        else if(!gameDataSave.isLearningData && gameDataSave.Difficulty == 1)
+        else if(!gameDataSave.isLearningData)
         {
             // 비율 설정
-            int num = Random.Range(0, 3);
+            int num = gameDataSave.FieldSpawnRateNum;
             centerRate = spawnRate[num,0];
             sideRate = spawnRate[num,1];
 
@@ -107,7 +107,7 @@ public class FieldSpawner : Spawner
                 isSideSlowField[i] = false;
             }
 
-            Debug.Log("Slow Field Spawn");
+            //Debug.Log("Slow Field Spawn");
             // 스테이지 클리어 시 필드 삭제
             GameObject[] gameObject = GameObject.FindGameObjectsWithTag("SlowField");
             for (int i = 0; i < gameObject.Length; i++)

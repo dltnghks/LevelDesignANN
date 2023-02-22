@@ -12,6 +12,7 @@ using System.Threading;
 using GoogleSheetsToUnity;
 using GoogleSheetsToUnity.ThirdPary;
 using UnityEngine.Events;
+using System.Runtime.Serialization.Formatters.Binary;
 
 
 /*
@@ -63,6 +64,15 @@ public class GameDataSave : MonoBehaviour
         // 느려지는 지형 생성 위치
         slowFieldCenter,
         slowFieldSide
+    }
+
+    public enum resultType
+    {
+        maxEnemySpawn,
+        minEnemySpawn,
+        maxFieldSpawn,
+        minFieldSpawn,
+        difficulty
     }
 
     [Header("플레이어")]
@@ -163,6 +173,8 @@ public class GameDataSave : MonoBehaviour
 
     // 생성 비율
     private float[,] spawnRate = { { 0.8f, 0.2f }, { 0.5f, 0.5f }, { 0.2f, 0.8f } };
+    private int spawnRateNum;
+    private int fieldSpawnRateNum; // 인공신경망일 때만 사용
     public float DefaultDamage => defaultDamage;
     public float DefaultHP => defaultHP;
     public float CommonDefaultSpeed => commonDefaultSpeed;
@@ -191,6 +203,7 @@ public class GameDataSave : MonoBehaviour
     public bool IsClear => isClear;
 
     public float NeedSpawnItemKillCount => needSpawnItemKillCount;
+    public int FieldSpawnRateNum => fieldSpawnRateNum;
 
     /*
      *  TCP 관련 변수
@@ -204,19 +217,48 @@ public class GameDataSave : MonoBehaviour
     bool socketReady = false;
     NetworkStream stream;
 
-    public struct packet_user_data
+    // 패킷 구조체
+    public struct packetUserDataStructure
     {
-        public int user_id;
-        public int paket_type;
-        public int x;
-        public int y;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 20)]
+        public string playerName;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 1024)]
+        public string strData;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 10)]
+        public string lastStage;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 20)]
+        public string score;
+
     }
 
-    public packet_user_data packet;
+    // 랭킹 구조체
+    public struct Rank
+    {
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 20)]
+        public string playerName;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 10)]
+        public string lastStage;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 20)]
+        public string score;
+    }
+
+    public packetUserDataStructure packetStructure;
+    public Rank[] ranking;
+
 
     void Awake(){
         // 데이터 초기화
         InitData();
+        if (isLearningData)
+        {
+            serverIP = "117.16.44.113";//"127.0.0.2";
+            port = 7777;
+        }
+        else
+        {
+            serverIP = "127.0.0.2";
+            port = 8000;
+        }
     }
     // Start is called before the first frame update
     void Start()
@@ -241,7 +283,41 @@ public class GameDataSave : MonoBehaviour
             //StreamWriter outStream = System.IO.File.AppendText(getPath());
             //fileData.Add(fileColName);
         }
+
+        // 랭킹 정보 가져오기
+        if (socketReady)
+        {
+            if (stream.CanRead)
+            {
+                // 수신할 데이터의 크기를 먼저 받음
+                byte[] sizeBytes = new byte[sizeof(int)];
+                stream.Read(sizeBytes, 0, sizeof(int));
+                int size = BitConverter.ToInt32(sizeBytes, 0);
+
+                // 수신할 데이터를 받아서 구조체 배열에 저장
+                ranking = new Rank[size];
+                Debug.Log(size);
+                // 구조체 배열을 받아서 저장한다.
+                for (int i = 0; i < size; i++)
+                {
+                    byte[] buf = new byte[Marshal.SizeOf<Rank>()];
+                    stream.Read(buf, 0, Marshal.SizeOf<Rank>());
+                    ranking[i] = ByteArrayToStructure<Rank>(buf);
+                    Debug.Log(ranking[i].playerName + " , " + ranking[i].lastStage + " , " + ranking[i].score);
+                }
+                
+            }
+        }
     }
+
+    public static T ByteArrayToStructure<T>(byte[] bytes) where T : struct
+    {
+        GCHandle handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
+        T result = (T)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(T));
+        handle.Free();
+        return result;
+    }
+
 
     void InitData(){
         dataDic = new Dictionary<DataType, float>();    // 게임 데이터 저장 공간
@@ -316,15 +392,20 @@ public class GameDataSave : MonoBehaviour
         WriteStats(UpdateWriteOne, "");
         for (int index = 0; index < length; index++)
         {
-            StringBuilder sbTmp = new StringBuilder();
             sb.Append(string.Join(delimiter, output[index]));
             sb.AppendLine(string.Join(delimiter, OutPut));
 
-            sbTmp.Append(string.Join(delimiter, output[index]));
-            sbTmp.AppendLine(string.Join(delimiter, OutPut));
+            // 학습데이터를 모을 때
+            if (isLearningData)
+            {
+                StringBuilder sbTmp = new StringBuilder();
 
-            string strData = sbTmp.ToString();
-            WriteDataPacket(strData);
+                sbTmp.Append(string.Join(delimiter, output[index]));
+                sbTmp.AppendLine(string.Join(delimiter, OutPut));
+
+                string strData = sbTmp.ToString();
+                WriteDataPacket(strData);
+            }
         }
 
         string filePath = getPath();
@@ -494,10 +575,10 @@ public class GameDataSave : MonoBehaviour
         if (isLearningData && difficulty == 0) // 학습 데이터 얻을 때
         {
             // 학습데이터를 얻을 때 랜던으로 세팅되는 몬스터 비율, 느려지는 지형 생성 수
-            int num = UnityEngine.Random.Range(0, 3);
+            spawnRateNum = UnityEngine.Random.Range(0, 3);
             // 몬스터 비율 설정
-            float commonRate = spawnRate[num, 0];
-            float speedRate = spawnRate[num, 1];
+            float commonRate = spawnRate[spawnRateNum, 0];
+            float speedRate = spawnRate[spawnRateNum, 1];
             //float tankerRate = 10 - speedRate - commonRate;
             enemyCommonRate = commonRate;
             enemySpeedRate = speedRate;
@@ -514,9 +595,9 @@ public class GameDataSave : MonoBehaviour
             if (currentStage == 1)
             {
                 // 첫 스테이지는 랜덤 세팅
-                int num = UnityEngine.Random.Range(0, 3);
-                float commonRate = spawnRate[num, 0];
-                float speedRate = spawnRate[num, 1];
+                int spawnRateNum = UnityEngine.Random.Range(0, 3);
+                float commonRate = spawnRate[spawnRateNum, 0];
+                float speedRate = spawnRate[spawnRateNum, 1];
 
                 //float tankerRate = 10 - speedRate - commonRate;
                 enemyCommonRate = commonRate;
@@ -525,15 +606,14 @@ public class GameDataSave : MonoBehaviour
                 DataSet(DataType.commonEnemyRate, commonRate);
                 DataSet(DataType.speedEnemyRate, speedRate);
                 //DataSet(DataType.tankerEnemyRate, tankerRate);
-                Debug.Log(commonRate + ", " + speedRate);
             }
             else
             {
                 // 느려지는 지형 세팅
 
                 // 몬스터 스폰율 세팅
-                float commonRate = enemyCommonRate;
-                float speedRate = enemySpeedRate;
+                float commonRate = spawnRate[spawnRateNum, 0];
+                float speedRate = spawnRate[spawnRateNum, 1];
                 //float tankerRate = enemyTankerRate;
                 enemyCommonRate = commonRate;
                 enemySpeedRate = speedRate;
@@ -621,33 +701,35 @@ public class GameDataSave : MonoBehaviour
                     stream.Flush();
                     msg = System.Text.Encoding.Default.GetString(receivedBuffer);
 
-                    string[] result = msg.Split(',');
-
-                    enemyCommonRate = Int32.Parse(result[0]);
+                    Debug.Log("enemy : " + spawnRateNum + ", field : " + fieldSpawnRateNum + ", cur difficulty : " + difficulty);
+                    string[] result = msg.Split(','); // 0 : 몬스터 최댓값 스폰율, 1 : 몬스터 최솟값 스폰율, 2 : 필드 최댓값 스폰율, 3: 필드 최솟값 스폰율 , 4 : 난이도
+                    for (int i = 0; i < result.Length; i++)
+                        Debug.Log(i + " : " + result[i]);
                     // 현재 스테이지 난이도가 낮다면
-                    if (difficulty < Int32.Parse(result[4]))
+                    if (difficulty < float.Parse(result[(int)(resultType.difficulty)]))
                     {
-                        // 몬스터 스폰율을 그대로
-                        enemyCommonRate = Int32.Parse(result[0]) * 10;
-                        enemySpeedRate = Int32.Parse(result[1]) * 10;
-                        // slow field 비율 그대로
-                        DataSet(DataType.slowFieldCenter, float.Parse(result[2]));
-                        DataSet(DataType.slowFieldCenter, float.Parse(result[3]));
+                        Debug.Log(float.Parse(result[(int)(resultType.difficulty)]) + "현재 난이도가 낮습니다.");
+                        // 몬스터 스폰율을 최솟값으로
+                        spawnRateNum = Int32.Parse(result[(int)(resultType.minEnemySpawn)]);
+                        enemyCommonRate = spawnRate[spawnRateNum, 0];
+                        enemySpeedRate = spawnRate[spawnRateNum, 1];
+                        // slow field 최솟값으로
+                        fieldSpawnRateNum = Int32.Parse(result[(int)(resultType.minFieldSpawn)]);
                     }
                     // 현재 스테이지 난이도가 높다면
                     else
                     {
+                        Debug.Log(float.Parse(result[(int)(resultType.difficulty)]) + "현재 난이도가 높습니다..");
                         // 몬스터 스폰율을 그대로
-                        enemyCommonRate = Int32.Parse(result[1]) * 10;
-                        enemySpeedRate = Int32.Parse(result[0]) * 10;
+                        spawnRateNum = Int32.Parse(result[(int)(resultType.maxEnemySpawn)]);
+                        enemyCommonRate = spawnRate[spawnRateNum, 0];
+                        enemySpeedRate = spawnRate[spawnRateNum, 1];
                         // slow field 비율 그대로
-                        DataSet(DataType.slowFieldCenter, float.Parse(result[3]));
-                        DataSet(DataType.slowFieldCenter, float.Parse(result[2]));
+                        fieldSpawnRateNum = Int32.Parse(result[(int)(resultType.maxFieldSpawn)]);
 
                     }
+                    Debug.Log("enemy : " + spawnRateNum + ", field : " + fieldSpawnRateNum + ", result difficulty : " + (int)(resultType.difficulty));
 
-                    Debug.Log("commonRate : " + enemyCommonRate + ", speedRate : " + enemySpeedRate + 
-                        ", slowFieldCenter : " + DataGet(DataType.slowFieldCenter) + ", slowFieldSide : " + DataGet(DataType.slowFieldSide) +  ", defficulty : " + result[4]);
 
                 }
             }
@@ -690,10 +772,6 @@ public class GameDataSave : MonoBehaviour
         try
         {
 
-            packet.user_id = 0;
-            packet.x = 200;
-            packet.y = 200;
-            packet.paket_type = 1;
             client = new TcpClient(serverIP, port);
 
             if (client.Connected)
@@ -712,18 +790,18 @@ public class GameDataSave : MonoBehaviour
 
     }
 
-    public void WritePacket()
-    {
-        packet.paket_type = 2;
-        receivedBuffer = StructureToByte(packet);
-        stream.Write(receivedBuffer, 0, receivedBuffer.Length);
-    }
-
     public void WriteDataPacket(string strData)
     {
-        Debug.Log(strData);
-        receivedBuffer = System.Text.Encoding.Default.GetBytes(strData);
-        stream.Write(receivedBuffer, 0, strData.Length);
+        packetStructure.playerName =  userName;
+        packetStructure.strData = strData;
+        packetStructure.lastStage = currentStage.ToString();
+        packetStructure.score = ((int)DataGet(DataType.killCount) * 100).ToString();
+        Debug.Log("score : " + packetStructure.score);
+        Debug.Log((packetStructure.playerName).ToString() + ":" + (packetStructure.strData).ToString());
+        //receivedBuffer = System.Text.Encoding.Default.GetBytes(strData);
+        receivedBuffer = StructureToByte(packetStructure);
+        Debug.Log(Marshal.SizeOf<packetUserDataStructure>());
+        stream.Write(receivedBuffer, 0, Marshal.SizeOf<packetUserDataStructure>());
     }
 
     void OnApplicationQuit()

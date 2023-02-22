@@ -51,7 +51,7 @@ public class EnemySpawner : Spawner
         this.difficultyChange = difficultyChange;
 
         spawnTime = 0.25f + 0.5f/(gameDataSave.Difficulty);
-        Debug.Log("SpawnTime : " + spawnTime);
+        //Debug.Log("SpawnTime : " + spawnTime);
         maxSpawnCount = wave.enemyAmount;
 
         StartCoroutine(RandomRespawn_Coroutine());

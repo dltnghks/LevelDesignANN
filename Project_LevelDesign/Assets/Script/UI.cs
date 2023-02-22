@@ -2,7 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using System;
 using TMPro;
+using System.IO;
 
 public class UI : MonoBehaviour
 {
@@ -97,7 +99,10 @@ public class UI : MonoBehaviour
     private Text textUserName;       // 플레이어 이름
     [SerializeField]
     private TextMeshProUGUI textInputError;     // 플레이어 이름 입력 에러
-    
+
+    [Header("랭킹 보드")]
+    [SerializeField]
+    private GameObject rankingBoard;
 
     bool isOpen = false; // 업그레이드 창 ON/OFF
 
@@ -109,6 +114,17 @@ public class UI : MonoBehaviour
         Shop.SetActive(false);
         isGameDataUI = false;
         Time.timeScale = 0;
+        
+        if (File.Exists(getPath()))
+        {
+            FileInfo fileInfo = new FileInfo(getPath());
+            StreamReader reader = new StreamReader(getPath());
+            string value = reader.ReadToEnd();
+            gameDataSave.userName = value;
+            reader.Close();
+
+            InputPanel.SetActive(false);
+        }
     }
     // Update is called once per frame
     void Update()
@@ -278,15 +294,36 @@ public class UI : MonoBehaviour
         {
             textInputError.text = "3글자 이상 입력해주세요.";
         }
-        else if(textUserName.text.Length >= 6)
+        else if(textUserName.text.Length > 10)
         {
-            textInputError.text = "5글자 이하로 입력해주세요.";
+            textInputError.text = "10글자 이하로 입력해주세요.";
         }
         else
         {
-            Debug.Log(textUserName.text.ToString());
+            DirectoryInfo directoryInfo = new DirectoryInfo(Path.GetDirectoryName(getPath()));
+            FileStream fileStream= new FileStream(getPath(), FileMode.OpenOrCreate, FileAccess.Write);
+            StreamWriter writer = new StreamWriter(fileStream, System.Text.Encoding.Unicode);
             gameDataSave.userName = textUserName.text.ToString();
+            //gameDataSave.userName = gameDataSave.userName.Remove(gameDataSave.userName.Length);
+
+            writer.Write(gameDataSave.userName);
+            writer.Close();
+
             InputPanel.SetActive(false);
         }
+    }
+
+    // 파일 경로 설정
+    private string getPath()
+    {
+#if UNITY_EDITOR
+        return Application.dataPath + "/name/" + "/playerName.txt";
+#elif UNITY_ANDROID
+        return Application.persistentDataPath+ "/name/" + "/playerName.txt";
+#elif UNITY_IPHONE
+        return Application.persistentDataPath++ "/name/" + "/playerName.txt";
+#else
+        return Application.dataPath + "/name/" + "/playerName.txt"
+#endif
     }
 }
