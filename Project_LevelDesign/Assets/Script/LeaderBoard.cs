@@ -35,7 +35,6 @@ public class LeaderBoard : MonoBehaviour
 
     private void Start()
     {
-        packet_user_data packet = new packet_user_data();
         for(int i = 0; i < rankLine.Length; i++)
         {
             rankLine[i].transform.GetChild(0).GetComponent<Text>().text = "#" + (i+1).ToString();
@@ -50,6 +49,14 @@ public class LeaderBoard : MonoBehaviour
     {
         for (int i = 0; i < rankLine.Length; i++)
         {
+            Color textColor = Color.black;
+            if (gameDataSave.ranking[i].playerName == gameDataSave.userName)
+                textColor = Color.red;
+
+            rank[i].playerName.color = textColor;
+            rank[i].lastStage.color = textColor;
+            rank[i].score.color = textColor;
+
             rank[i].playerName.text = gameDataSave.ranking[i].playerName;
             rank[i].lastStage.text = gameDataSave.ranking[i].lastStage;
             rank[i].score.text = gameDataSave.ranking[i].score.ToString();

@@ -313,6 +313,11 @@ public class UI : MonoBehaviour
         }
     }
 
+    public void OnClickRankingButton()
+    {
+        rankingBoard.SetActive(false);
+    }
+
     // 파일 경로 설정
     private string getPath()
     {
@@ -323,7 +328,7 @@ public class UI : MonoBehaviour
 #elif UNITY_IPHONE
         return Application.persistentDataPath++ "/name/" + "/playerName.txt";
 #else
-        return Application.dataPath + "/name/" + "/playerName.txt"
+        return Application.dataPath + "/playerName.txt";
 #endif
     }
 }

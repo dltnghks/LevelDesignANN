@@ -251,7 +251,7 @@ public class GameDataSave : MonoBehaviour
         InitData();
         if (isLearningData)
         {
-            serverIP = "117.16.44.113";//"127.0.0.2";
+            serverIP = "117.16.44.111";//"127.0.0.2";
             port = 7777;
         }
         else
@@ -371,6 +371,7 @@ public class GameDataSave : MonoBehaviour
         SpreadsheetManager.Append(new GSTU_Search(associatedSheet, associatedWorksheet), data, callback);
     }
 
+
     public void SetOutPut()
     {
         // 최종 스테이지 값 + 플레이 시간
@@ -390,6 +391,7 @@ public class GameDataSave : MonoBehaviour
         StringBuilder sb = new StringBuilder();
 
         WriteStats(UpdateWriteOne, "");
+        Debug.Log("length : " + length);
         for (int index = 0; index < length; index++)
         {
             sb.Append(string.Join(delimiter, output[index]));
@@ -404,6 +406,7 @@ public class GameDataSave : MonoBehaviour
                 sbTmp.AppendLine(string.Join(delimiter, OutPut));
 
                 string strData = sbTmp.ToString();
+
                 WriteDataPacket(strData);
             }
         }
@@ -431,7 +434,7 @@ public class GameDataSave : MonoBehaviour
         time += Time.deltaTime;
         playTime += Time.deltaTime;
         stageTime += Time.deltaTime;
-        if (time >= 3){
+        if (time >= 1){
             string[] tempData = new string[fileColName.Length - outPutAmount];
             // 플레이어 체력, 남은 몬스터 수, 가장 가까운 벽과의 평균 거리, 가장 가까운 몬스터와 평균 거리, 명중률, 평균 히트 거리, 1킬당 평균 발사 수, 움직이면서 발사한 비율, 현재 스테이지, 아이템으로 회복한 체력
             tempData[0] = playerHP.ToString();
