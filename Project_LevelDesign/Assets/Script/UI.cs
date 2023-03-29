@@ -283,7 +283,7 @@ public class UI : MonoBehaviour
         ExitPanel.SetActive(false);
         isOpen = false;
         DescriptionPanel.SetActive(false);
-        Time.timeScale = 1;
+        Time.timeScale = 1f;
         DescriptionPanel.SetActive(false);
     }
 
@@ -300,10 +300,11 @@ public class UI : MonoBehaviour
         }
         else
         {
+            DateTime dateTime = DateTime.Now;
             DirectoryInfo directoryInfo = new DirectoryInfo(Path.GetDirectoryName(getPath()));
             FileStream fileStream= new FileStream(getPath(), FileMode.OpenOrCreate, FileAccess.Write);
             StreamWriter writer = new StreamWriter(fileStream, System.Text.Encoding.Unicode);
-            gameDataSave.userName = textUserName.text.ToString();
+            gameDataSave.userName =  textUserName.text.ToString() + dateTime.ToString("yyyyMMddHHmm");
             //gameDataSave.userName = gameDataSave.userName.Remove(gameDataSave.userName.Length);
 
             writer.Write(gameDataSave.userName);

@@ -220,9 +220,9 @@ public class GameDataSave : MonoBehaviour
     // 패킷 구조체
     public struct packetUserDataStructure
     {
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 20)]
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 40)]
         public string playerName;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 1024)]
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
         public string strData;
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 10)]
         public string lastStage;
@@ -234,7 +234,7 @@ public class GameDataSave : MonoBehaviour
     // 랭킹 구조체
     public struct Rank
     {
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 20)]
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 40)]
         public string playerName;
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 10)]
         public string lastStage;
@@ -285,27 +285,30 @@ public class GameDataSave : MonoBehaviour
         }
 
         // 랭킹 정보 가져오기
-        if (socketReady)
+        if (isLearningData)// 학습 때 사용
         {
-            if (stream.CanRead)
+            if (socketReady)
             {
-                // 수신할 데이터의 크기를 먼저 받음
-                byte[] sizeBytes = new byte[sizeof(int)];
-                stream.Read(sizeBytes, 0, sizeof(int));
-                int size = BitConverter.ToInt32(sizeBytes, 0);
-
-                // 수신할 데이터를 받아서 구조체 배열에 저장
-                ranking = new Rank[size];
-                Debug.Log(size);
-                // 구조체 배열을 받아서 저장한다.
-                for (int i = 0; i < size; i++)
+                if (stream.CanRead)
                 {
-                    byte[] buf = new byte[Marshal.SizeOf<Rank>()];
-                    stream.Read(buf, 0, Marshal.SizeOf<Rank>());
-                    ranking[i] = ByteArrayToStructure<Rank>(buf);
-                    Debug.Log(ranking[i].playerName + " , " + ranking[i].lastStage + " , " + ranking[i].score);
+                    // 수신할 데이터의 크기를 먼저 받음
+                    byte[] sizeBytes = new byte[sizeof(int)];
+                    stream.Read(sizeBytes, 0, sizeof(int));
+                    int size = BitConverter.ToInt32(sizeBytes, 0);
+
+                    // 수신할 데이터를 받아서 구조체 배열에 저장
+                    ranking = new Rank[size];
+                    Debug.Log(size);
+                    // 구조체 배열을 받아서 저장한다.
+                    for (int i = 0; i < size; i++)
+                    {
+                        byte[] buf = new byte[Marshal.SizeOf<Rank>()];
+                        stream.Read(buf, 0, Marshal.SizeOf<Rank>());
+                        ranking[i] = ByteArrayToStructure<Rank>(buf);
+                        Debug.Log(ranking[i].playerName + " , " + ranking[i].lastStage + " , " + ranking[i].score);
+                    }
+
                 }
-                
             }
         }
     }
@@ -380,7 +383,8 @@ public class GameDataSave : MonoBehaviour
         // 파일에 들어갈 데이터 설정
         string[][] output = new string[fileData.Count][];
 
-        for (int i = 0; i < output.Length; i++)
+        Debug.Log("outputLength :" + fileData.Count);
+        for (int i = 0; i < fileData.Count; i++)
         {
             output[i] = fileData[i];
         }
@@ -392,7 +396,7 @@ public class GameDataSave : MonoBehaviour
 
         WriteStats(UpdateWriteOne, "");
         Debug.Log("length : " + length);
-        for (int index = 0; index < length; index++)
+        for (int index = 0; index < fileData.Count; index++)
         {
             sb.Append(string.Join(delimiter, output[index]));
             sb.AppendLine(string.Join(delimiter, OutPut));
@@ -434,7 +438,7 @@ public class GameDataSave : MonoBehaviour
         time += Time.deltaTime;
         playTime += Time.deltaTime;
         stageTime += Time.deltaTime;
-        if (time >= 1){
+        if (time >= 3){
             string[] tempData = new string[fileColName.Length - outPutAmount];
             // 플레이어 체력, 남은 몬스터 수, 가장 가까운 벽과의 평균 거리, 가장 가까운 몬스터와 평균 거리, 명중률, 평균 히트 거리, 1킬당 평균 발사 수, 움직이면서 발사한 비율, 현재 스테이지, 아이템으로 회복한 체력
             tempData[0] = playerHP.ToString();
@@ -500,8 +504,26 @@ public class GameDataSave : MonoBehaviour
             //"enemyCount", "currentStage",  "weaponType"
             fileData.Add(tempData);
             TestfileData.Add(tempData);
-            time = 0;
 
+            /*
+
+            string delimiter = ",";
+
+            StringBuilder sb = new StringBuilder();
+
+            WriteStats(UpdateWriteOne, "");
+            // 학습데이터를 모을 때
+            if (isLearningData)
+            {
+                StringBuilder sbTmp = new StringBuilder();
+
+                sbTmp.Append(string.Join(delimiter, tempData));
+                string strData = sbTmp.ToString();
+                WriteDataPacket(strData);
+            }
+           
+            */
+            time = 0;
         }         
     }
 
@@ -789,6 +811,7 @@ public class GameDataSave : MonoBehaviour
         catch (Exception e)
         {
             Debug.Log("On client connect exception " + e);
+            Application.Quit();
         }
 
     }

@@ -35,14 +35,17 @@ public class LeaderBoard : MonoBehaviour
 
     private void Start()
     {
-        for(int i = 0; i < rankLine.Length; i++)
+        //gameObject.SetActive(false);
+        if (gameDataSave.isLearningData)
         {
-            rankLine[i].transform.GetChild(0).GetComponent<Text>().text = "#" + (i+1).ToString();
-            rank[i].playerName = rankLine[i].transform.GetChild(1).GetComponent<Text>();
-            rank[i].lastStage = rankLine[i].transform.GetChild(2).GetComponent<Text>();
-            rank[i].score = rankLine[i].transform.GetChild(3).GetComponent<Text>();
+            for (int i = 0; i < rankLine.Length; i++)
+            {
+                rankLine[i].transform.GetChild(0).GetComponent<Text>().text = "#" + (i + 1).ToString();
+                rank[i].playerName = rankLine[i].transform.GetChild(1).GetComponent<Text>();
+                rank[i].lastStage = rankLine[i].transform.GetChild(2).GetComponent<Text>();
+                rank[i].score = rankLine[i].transform.GetChild(3).GetComponent<Text>();
+            }
         }
-
     }
 
     private void Update()
